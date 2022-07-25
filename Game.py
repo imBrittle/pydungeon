@@ -68,7 +68,6 @@ class World():
                     img_rect.y = row_count * tile_size
                     tile = (img, img_rect)
                     self.tile_list.append(tile)
-
                 col_count += 1
             row_count += 1
 
@@ -165,7 +164,7 @@ class Player(pygame.sprite.Sprite):
         mx, my = pygame.mouse.get_pos()
         rel_x, rel_y = mx - self.x, my - self.y
         angle = (180 / math.pi) * -math.atan2(rel_y, rel_x)
-        self.image = pygame.transform.rotate(self.original_image, int(angle))
+        self.image = pygame.transform.rotate(self.original_image, int(angle) + 270)
         self.rect = self.image.get_rect(center=self.position)
 
         # Angle2
