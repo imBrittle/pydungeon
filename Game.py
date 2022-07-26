@@ -1,5 +1,5 @@
 # Game
-import pygame, sys, time, math, numpy
+import pygame, sys, time, math, numpy, random
 from pygame.locals import *
 
 pygame.init()
@@ -167,12 +167,6 @@ class Player(pygame.sprite.Sprite):
         self.image = pygame.transform.rotate(self.original_image, int(angle) + 270)
         self.rect = self.image.get_rect(center=self.position)
 
-        # Angle2
-        # mx, my = pygame.mouse.get_pos()
-        # self.angle = math.atan2(self.y-my, self.x-mx)
-        # self.image = pygame.transform.rotate(self.original_image, int(self.angle))
-        # self.rect = self.image.get_rect(center=self.position)
-
         # Collision
         # for tile in world.tile_list:
         #         if tile[1].colliderect(self.rect):
@@ -197,11 +191,16 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.x = self.x
         self.rect.y = self.y
         self.position = self.x + (self.rect.width / 2), self.y + (self.rect.height / 2)
+        self.speed = 0
     def Update(self, px, py):
         rel_x, rel_y = px - self.x, py - self.y
-        angle = (180 / math.pi) * -math.atan2(rel_y, rel_x)
-        self.image = pygame.transform.rotate(self.original_image, int(angle))
+        self.angle = (180 / math.pi) * -math.atan2(rel_y, rel_x)
+        self.image = pygame.transform.rotate(self.original_image, int(self.angle))
         self.rect = self.image.get_rect(center=self.position)
+        self.x += math.cos(-self.angle) * self.speed
+        self.y += math.sin(-self.angle) * self.speed
+        self.rect.x = self.x
+        self.rect.y = self.y
 
 class Fragment(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -221,25 +220,45 @@ class Star(pygame.sprite.Sprite):
         self.x = x
         self.y = y
 
+class Projectile(object):
+    def __init__(self, x, y, radius, color, direction):
+        self.x = x
+        self.y = y
+        self.radius = radius
+        self.color = color
+        self.direction = direction
+        self.vel = 16
+        self.rect = pygame.Rect(self.x, self.y, self.radius, self.radius)
+        mx, my = pygame.mouse.get_pos()
+        rel_x, rel_y = mx - self.x, my - self.y
+        self.angle = math.atan2(rel_y, rel_x)
+    def Draw(self,win):   
+        pygame.draw.circle(win, self.color, (self.x,self.y), self.radius)
+    def Update(self):
+        self.x += math.cos(self.angle) * self.vel
+        self.y += math.sin(self.angle) * self.vel
+        self.rect.x = self.x
+        self.rect.y = self.y
+        
 world_data = [
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 
-    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1], 
-    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1], 
-    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1], 
-    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1], 
-    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1], 
-    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1], 
-    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], 
-    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], 
-    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], 
-    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], 
-    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1], 
-    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1], 
-    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1], 
-    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1], 
-    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1], 
-    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1], 
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
 
 world = World(world_data)
 
@@ -252,6 +271,11 @@ def Game():
     enemy1 = Enemy(700, 300)
     fragment1 = Fragment(500, 500)
     star1 = Star(700, 700)
+
+    enemies = []
+    fragments = []
+    stars = []
+    bullets = []
 
     debug = False
     keyCooldown = 0
@@ -277,7 +301,10 @@ def Game():
         player.Update()
         player.rect.clamp_ip(screenRect)
 
-        screen.blit(panel.image, (panel.x, panel.y))
+        for bullet in bullets:
+            bullet.Draw(screen)
+
+        screen.blit(panel.image, (panel.x, panel.y)) # Side Panel: Must be drawn last
 
         keyCooldown += 1
 
@@ -296,6 +323,9 @@ def Game():
                 debug = True
             else:
                 debug = False
+        if keys[pygame.K_SPACE]:
+            if len(bullets) < 1000:  # Bullet Cap
+                bullets.append(Projectile(round(player.x+player.width//2), round(player.y + player.height//2), 6, (255, 255, 255), 90)) 
 
         mx, my = pygame.mouse.get_pos()
 
@@ -311,6 +341,15 @@ def Game():
         if player.y < -60:
             player.y = 1140
             player.rect.y = 1140
+
+        # Projectiles        
+        for bullet in bullets:
+            if 0 < bullet.x < 1920 and 0 < bullet.y < 1080:
+                if bullet.rect.colliderect(enemy1.rect):
+                    bullets.pop(bullets.index(bullet))
+                bullet.Update()
+            else:
+                bullets.pop(bullets.index(bullet))
 
         # Identifiers
         if debug == True:
