@@ -47,6 +47,8 @@ class World():
         self.tile_list = []
 
         # Load Images
+        dirt_bg_img = pygame.image.load('img/dirt_bg.png').convert()
+        self.dirt_bg = pygame.transform.scale(dirt_bg_img, (1620, 1080))
         stone_bricks_img = pygame.image.load('img/stone_bricks.png').convert()
         dirt_img = pygame.image.load('img/dirt.png').convert()
 
@@ -72,6 +74,7 @@ class World():
             row_count += 1
 
     def draw(self):
+        screen.blit(self.dirt_bg, (0, 0))
         for tile in self.tile_list:
             screen.blit(tile[0], tile[1])
             # pygame.draw.rect(screen, (255, 255, 255), tile[1], 2)
@@ -82,12 +85,6 @@ class Player(pygame.sprite.Sprite):
         self.original_image = pygame.transform.scale(image, (64, 64))
         self.image = pygame.transform.scale(image, (64, 64))
         self.rect = self.image.get_rect()
-        self.name = name
-        self.max_hp = max_hp
-        self.hp = max_hp
-        self.damage = damage
-        self.scroll = []
-        self.start_scroll = self.scroll
         self.isAlive = True
         self.update_time = pygame.time.get_ticks()
         self.VelocityX = 0
@@ -97,12 +94,20 @@ class Player(pygame.sprite.Sprite):
         self.rect.x = self.x
         self.rect.y = self.y
         self.position = self.x + (self.rect.width / 2), self.y + (self.rect.height / 2)
-        self.speed = 2
-        self.maxSpeed = 10
         self.velocityDiminish = 0.5
         self.width = self.image.get_width()
         self.height = self.image.get_height()
         self.objectCollide = False
+        # Stats
+        self.name = name
+        self.max_hp = max_hp
+        self.hp = max_hp
+        self.damage = damage
+        self.scroll = []
+        self.start_scroll = self.scroll
+        self.speed = 2
+        self.maxSpeed = 10
+
 
     def keyPress(self, keys):
         if keys[pygame.K_a]:
@@ -191,7 +196,10 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.x = self.x
         self.rect.y = self.y
         self.position = self.x + (self.rect.width / 2), self.y + (self.rect.height / 2)
+        self.animationStage = 0
+        # Stats
         self.speed = 0
+        self.health = 3
     def Update(self, px, py):
         rel_x, rel_y = px - self.x, py - self.y
         self.angle = (180 / math.pi) * -math.atan2(rel_y, rel_x)
@@ -232,7 +240,7 @@ class Projectile(object):
         mx, my = pygame.mouse.get_pos()
         rel_x, rel_y = mx - self.x, my - self.y
         self.angle = math.atan2(rel_y, rel_x)
-    def Draw(self,win):   
+    def Draw(self,win):
         pygame.draw.circle(win, self.color, (self.x,self.y), self.radius)
     def Update(self):
         self.x += math.cos(self.angle) * self.vel
@@ -267,18 +275,20 @@ def Game():
     starCount = 0
 
     panel = Panel(1560, 0)
-    player = Player(300, 300, 'Player', 10, 1)
+    player = Player(300, 300, 'Player', 5, 1)
     enemy1 = Enemy(700, 300)
     fragment1 = Fragment(500, 500)
     star1 = Star(700, 700)
 
-    enemies = []
-    fragments = []
-    stars = []
+    enemies = [enemy1]
+    fragments = [fragment1]
+    stars = [star1]
     bullets = []
 
-    debug = False
     keyCooldown = 0
+    shootTimer = 0
+
+    debug = False
 
     run = True
     while run:
@@ -289,12 +299,18 @@ def Game():
 
         world.draw()
 
-        screen.blit(star1.image, (star1.x, star1.y))
+        for s in stars:
+            screen.blit(s.image, (s.x, s.y))
 
-        screen.blit(fragment1.image, (fragment1.x, fragment1.y))
+        for f in fragments:
+            screen.blit(f.image, (f.x, f.y))
 
-        enemy1.Update(player.x, player.y)
-        screen.blit(enemy1.image, (enemy1.x, enemy1.y))
+        for o in enemies:
+            if o in enemies:
+                o.Update(player.x, player.y)
+                screen.blit(o.image, (o.x, o.y))
+            else: 
+                pass
 
         keys = pygame.key.get_pressed()
         player.keyPress(keys)
@@ -324,8 +340,9 @@ def Game():
             else:
                 debug = False
         if keys[pygame.K_SPACE]:
-            if len(bullets) < 1000:  # Bullet Cap
+            if shootTimer >= 30 and len(bullets) < 1000:  # Bullet Cap
                 bullets.append(Projectile(round(player.x+player.width//2), round(player.y + player.height//2), 6, (255, 255, 255), 90)) 
+                shootTimer = 0
 
         mx, my = pygame.mouse.get_pos()
 
@@ -345,17 +362,25 @@ def Game():
         # Projectiles        
         for bullet in bullets:
             if 0 < bullet.x < 1920 and 0 < bullet.y < 1080:
-                if bullet.rect.colliderect(enemy1.rect):
-                    bullets.pop(bullets.index(bullet))
+                for o in enemies:
+                    if bullet.rect.colliderect(o.rect):
+                        bullets.pop(bullets.index(bullet))
+                        o.health -= player.damage
+                        if o.health <= 0:
+                            enemies.pop(enemies.index(o))
+                        else:
+                            pass
                 bullet.Update()
             else:
                 bullets.pop(bullets.index(bullet))
+        shootTimer += 1
 
         # Identifiers
         if debug == True:
             draw_text(f'Player: {player.x, player.y}', font, (255, 200, 255), screen, player.x, player.y - 20)
             draw_text(f'Star: {star1.x, star1.y}', font, (255, 255, 0), screen, star1.x, star1.y - 20)
-            draw_text(f'Enemy: {enemy1.x, enemy1.y}', font, (255, 0, 0), screen, enemy1.x, enemy1.y - 20)
+            for o in enemies:
+                draw_text(f'Enemy: {enemy1.x, enemy1.y}', font, (255, 0, 0), screen, enemy1.x, enemy1.y - 20)
             draw_text(f'Fragment: {fragment1.x, fragment1.y}', font, (0, 255, 255), screen, fragment1.x, fragment1.y - 20)
             draw_text(f'FPS: {round(clock.get_fps(), 2)}', font, (255, 255, 255), screen, 10, 10)
             draw_text(f'MouseCoords = {mx}, {my}', font, (255, 255, 255), screen, 1500, 10)
