@@ -1,4 +1,5 @@
 # Game
+from pdb import Restart
 import pygame, sys, time, math, numpy, random
 from pygame.locals import *
 
@@ -80,7 +81,7 @@ class World():
             # pygame.draw.rect(screen, (255, 255, 255), tile[1], 2)
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, x, y, name, max_hp, damage):
+    def __init__(self, x, y, name, maxHealth, damage):
         image = pygame.image.load('img/player.png').convert_alpha()
         self.original_image = pygame.transform.scale(image, (64, 64))
         self.image = pygame.transform.scale(image, (64, 64))
@@ -100,14 +101,13 @@ class Player(pygame.sprite.Sprite):
         self.objectCollide = False
         # Stats
         self.name = name
-        self.max_hp = max_hp
-        self.hp = max_hp
+        self.maxHealth = maxHealth
+        self.health = maxHealth
         self.damage = damage
         self.scroll = []
         self.start_scroll = self.scroll
-        self.speed = 2
-        self.maxSpeed = 10
-
+        self.speed = 1
+        self.maxSpeed = 8
 
     def keyPress(self, keys):
         if keys[pygame.K_a]:
@@ -134,7 +134,6 @@ class Player(pygame.sprite.Sprite):
         if keys[pygame.K_x]:
             pass
             print("Ultimate")
-        return self.VelocityX, self.VelocityY
 
     def Update(self):
         self.prevX = self.x
@@ -152,9 +151,6 @@ class Player(pygame.sprite.Sprite):
 
         self.x += self.VelocityX
         self.y += self.VelocityY
-        self.rect.x = self.x
-        self.rect.y = self.y
-        # print(f'Rect = {self.rect.x}, {self.rect.y}')
 
         if self.VelocityX > 0:
             self.VelocityX -= self.velocityDiminish
@@ -173,16 +169,16 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=self.position)
 
         # Collision
-        # for tile in world.tile_list:
-        #         if tile[1].colliderect(self.rect):
-        #             self.VelocityX = 0
-        #             self.VelocityY = 0
-        #             self.objectCollide = True
+        for tile in world.tile_list:
+            if tile[1].colliderect(self.rect):
+                self.VelocityX = 0
+                self.VelocityY = 0
+                self.objectCollide = True
 
-        # self.rect.clamp_ip(screenRect)
+        self.rect.x = self.x
+        self.rect.y = self.y
 
         screen.blit(self.image, (self.x, self.y))
-        return self.x, self.y
 
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -195,11 +191,15 @@ class Enemy(pygame.sprite.Sprite):
         self.y = y
         self.rect.x = self.x
         self.rect.y = self.y
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
         self.position = self.x + (self.rect.width / 2), self.y + (self.rect.height / 2)
         self.animationStage = 0
         # Stats
         self.speed = 0
         self.health = 3
+        self.damage = 1
+        self.shootTimer = 0
     def Update(self, px, py):
         rel_x, rel_y = px - self.x, py - self.y
         self.angle = (180 / math.pi) * -math.atan2(rel_y, rel_x)
@@ -209,6 +209,11 @@ class Enemy(pygame.sprite.Sprite):
         self.y += math.sin(-self.angle) * self.speed
         self.rect.x = self.x
         self.rect.y = self.y
+    def Shoot(self, enemyBullets, px, py):
+        self.shootTimer += 1
+        if self.shootTimer >= 60 and len(enemyBullets) < 1000:  # Bullet Cap
+            enemyBullets.append(EnemyProjectile(round(self.x+self.width//2), round(self.y + self.height//2), 6, (255, 100, 100), 90, px + 32, py + 32)) 
+            self.shootTimer = 0
 
 class Fragment(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -247,6 +252,25 @@ class Projectile(object):
         self.y += math.sin(self.angle) * self.vel
         self.rect.x = self.x
         self.rect.y = self.y
+
+class EnemyProjectile(object):
+    def __init__(self, x, y, radius, color, direction, px, py):
+        self.x = x
+        self.y = y
+        self.radius = radius
+        self.color = color
+        self.direction = direction
+        self.vel = 16
+        self.rect = pygame.Rect(self.x, self.y, self.radius, self.radius)
+        rel_x, rel_y = px - self.x, py - self.y
+        self.angle = math.atan2(rel_y, rel_x)
+    def Draw(self,win):
+        pygame.draw.circle(win, self.color, (self.x,self.y), self.radius)
+    def Update(self):
+        self.x += math.cos(self.angle) * self.vel
+        self.y += math.sin(self.angle) * self.vel
+        self.rect.x = self.x
+        self.rect.y = self.y
         
 world_data = [
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 
@@ -276,7 +300,7 @@ def Game():
 
     panel = Panel(1560, 0)
     player = Player(300, 300, 'Player', 5, 1)
-    enemy1 = Enemy(700, 300)
+    enemy1 = Enemy(random.randint(200, 1400), random.randint(200, 800))
     fragment1 = Fragment(500, 500)
     star1 = Star(700, 700)
 
@@ -284,6 +308,7 @@ def Game():
     fragments = [fragment1]
     stars = [star1]
     bullets = []
+    enemyBullets = []
 
     keyCooldown = 0
     shootTimer = 0
@@ -308,6 +333,7 @@ def Game():
         for o in enemies:
             if o in enemies:
                 o.Update(player.x, player.y)
+                o.Shoot(enemyBullets, player.x, player.y)
                 screen.blit(o.image, (o.x, o.y))
             else: 
                 pass
@@ -318,6 +344,8 @@ def Game():
         player.rect.clamp_ip(screenRect)
 
         for bullet in bullets:
+            bullet.Draw(screen)
+        for bullet in enemyBullets:
             bullet.Draw(screen)
 
         screen.blit(panel.image, (panel.x, panel.y)) # Side Panel: Must be drawn last
@@ -374,14 +402,31 @@ def Game():
             else:
                 bullets.pop(bullets.index(bullet))
         shootTimer += 1
+        for bullet in enemyBullets:
+            if 0 < bullet.x < 1920 and 0 < bullet.y < 1080:
+                for o in enemies:
+                    if bullet.rect.colliderect(player.rect):
+                        enemyBullets.pop(enemyBullets.index(bullet))
+                        player.health -= o.damage
+                        if o.health <= 0:
+                            player.pop(player.index(o))
+                        else:
+                            pass
+                bullet.Update()
+            else:
+                enemyBullets.pop(enemyBullets.index(bullet))
 
         # Identifiers
         if debug == True:
             draw_text(f'Player: {player.x, player.y}', font, (255, 200, 255), screen, player.x, player.y - 20)
             draw_text(f'Star: {star1.x, star1.y}', font, (255, 255, 0), screen, star1.x, star1.y - 20)
             for o in enemies:
-                draw_text(f'Enemy: {enemy1.x, enemy1.y}', font, (255, 0, 0), screen, enemy1.x, enemy1.y - 20)
+                draw_text(f'Enemy: {o.x, o.y}', font, (255, 0, 0), screen, o.x, o.y - 20)
             draw_text(f'Fragment: {fragment1.x, fragment1.y}', font, (0, 255, 255), screen, fragment1.x, fragment1.y - 20)
+            for bullet in bullets:
+                draw_text(f'Bullet: {round(bullet.x, 2), round(bullet.y, 2)}', font, (255, 255, 255), screen, bullet.x, bullet.y - 20)
+            for bullet in enemyBullets:
+                draw_text(f'Enemy Bullet: {round(bullet.x, 2), round(bullet.y, 2)}', font, (255, 100, 100), screen, bullet.x, bullet.y - 20)
             draw_text(f'FPS: {round(clock.get_fps(), 2)}', font, (255, 255, 255), screen, 10, 10)
             draw_text(f'MouseCoords = {mx}, {my}', font, (255, 255, 255), screen, 1500, 10)
             draw_text(f'Fragments = {fragmentCount}', font, (255, 255, 255), screen, 1500, 30)
