@@ -13,6 +13,7 @@ screenRect = pygame.Rect(0, 0, screen_width, screen_height)
 screen = pygame.display.set_mode((screen_width, screen_height))
 
 font = pygame.font.Font(None, 20)
+bigFont = pygame.font.Font(None, 60)
 
 fps = 60
 target_fps = 240
@@ -26,13 +27,32 @@ def draw_text(text, font, color, surface, x, y):
     textrect.topleft = (x, y)
     surface.blit(textobj, textrect)
 
-def BuildWorld(size):
-    world = [
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0]]
+# def BuildWorld(currentLevel, size=None):
+#     startRoomCount = 5
+#     roomIncrease = 2
+
+#     if size is None:
+#         worldSize = startRoomCount + currentLevel + roomIncrease
+        
+#     world = [
+#         [0, 0, 0, 0, 0],
+#         [0, 0, 0, 0, 0],
+#         [0, 0, 1, 0, 0],
+#         [0, 0, 0, 0, 0],
+#         [0, 0, 0, 0, 0]]
+#     adjacentTiles = []
+
+#     row_count = 0
+#     for row in world:
+#         col_count = 0
+#         for room in row:
+#             if room == 1:
+#                 adjacentTiles.append(world.index((row - 1)[world.index(room)]))
+#                 adjacentTiles.append(world.index(room - 1))
+#                 adjacentTiles.append(world.index(room + 1))
+#                 adjacentTiles.append(world.index((row + 1)[world.index(room)]))
+#             col_count += 1
+#         row_count += 1
 
 class Panel(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -76,6 +96,9 @@ class World():
                 if tile == 4:
                     fragment = Fragment(col_count * tile_size, row_count * tile_size)
                     fragment_group.add(fragment)
+                if tile == 5:
+                    enemy = Enemy(col_count * tile_size, row_count * tile_size)
+                    enemy_group.add(enemy)
                 col_count += 1
             row_count += 1
 
@@ -201,8 +224,8 @@ class Enemy(pygame.sprite.Sprite):
         self.position = self.x + (self.rect.width / 2), self.y + (self.rect.height / 2)
         self.animationStage = 0
         # Stats
-        self.speed = 0
         self.health = 3
+        self.speed = 0
         self.damage = 1
         self.shootTimer = -60
     def Update(self, px, py):
@@ -243,7 +266,6 @@ class Star(pygame.sprite.Sprite):
     def Update(self):
         self.rect.x = self.x
         self.rect.y = self.y
-
 
 class Projectile(object):
     def __init__(self, x, y, radius, color, direction):
@@ -290,7 +312,7 @@ world_data = [
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
     [1, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 1], 
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 1], 
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
@@ -304,8 +326,12 @@ world_data = [
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
 
+# currentLevel = 1
+# BuildWorld(currentLevel)
+
 star_group = pygame.sprite.Group()
 fragment_group = pygame.sprite.Group()
+enemy_group = pygame.sprite.Group()
 world = World(world_data)
 
 def Game():
@@ -314,9 +340,10 @@ def Game():
 
     panel = Panel(1560, 0)
     player = Player(300, 300, 'Player', 1000, 1)
-    enemy1 = Enemy(random.randint(200, 1400), random.randint(200, 800))
 
-    enemies = [enemy1]
+    enemies = []
+    for o in enemy_group:
+        enemies.append(o)
     fragments = []
     for f in fragment_group:
         fragments.append(f)
@@ -349,7 +376,7 @@ def Game():
 
         for f in fragments:
             if f.rect.colliderect(player.rect):
-                fragmentCount += 1
+                fragmentCount += random.randint(1, 3)
                 fragments.pop(fragments.index(f))
             f.Update()
             screen.blit(f.image, (f.x, f.y))
@@ -370,7 +397,12 @@ def Game():
         for bullet in enemyBullets:
             bullet.Draw(screen)
 
-        screen.blit(panel.image, (panel.x, panel.y)) # Side Panel: Must be drawn last
+        # Side Panel
+        screen.blit(panel.image, (panel.x, panel.y)) # Must be drawn last
+        draw_text(f'{fragmentCount}', bigFont, (255, 255, 255), screen, 1630, 420)
+        draw_text(f'{starCount}', bigFont, (255, 255, 255), screen, 1800, 420)
+        draw_text(f'{player.speed}', bigFont, (255, 255, 255), screen, 1750, 495)
+        draw_text(f'{player.damage}', bigFont, (255, 255, 255), screen, 1750, 540)
 
         keyCooldown += 1
 
@@ -432,7 +464,6 @@ def Game():
                         player.health -= o.damage
                         if o.health <= 0:
                             player.pop(player.index(o))
-                            popDelay = len(enemies)
                         else:
                             pass
                 bullet.Update()
@@ -444,8 +475,11 @@ def Game():
             draw_text(f'Player: {player.x, player.y}', font, (255, 100, 255), screen, player.x, player.y - 40)
             draw_text(f'Health: {player.health}', font, (255, 100, 255), screen, player.x, player.y - 20)
             for o in enemies:
-                draw_text(f'Enemy: {o.x, o.y}', font, (255, 0, 0), screen, o.x, o.y - 40)
-                draw_text(f'Health: {o.health}', font, (255, 0, 0), screen, o.x, o.y - 20)
+                draw_text(f'Enemy: {o.x, o.y}', font, (255, 0, 0), screen, o.x, o.y - 60)
+                draw_text(f'Health: {o.health}', font, (255, 0, 0), screen, o.x, o.y - 40)
+                draw_text(f'Speed: {o.speed}', font, (255, 0, 0), screen, o.x + 80, o.y - 40)
+                draw_text(f'Damage: {o.damage}', font, (255, 0, 0), screen, o.x, o.y - 20)
+                draw_text(f'ShootTimer: {o.shootTimer}', font, (255, 0, 0), screen, o.x + 80, o.y - 20)
             for s in stars:
                 draw_text(f'Star: {s.x, s.y}', font, (255, 255, 0), screen, s.x, s.y - 20)
             for f in fragments:
@@ -456,11 +490,9 @@ def Game():
                 draw_text(f'Enemy Bullet: {round(bullet.x, 2), round(bullet.y, 2)}', font, (255, 100, 100), screen, bullet.x, bullet.y - 20)
             draw_text(f'FPS: {round(clock.get_fps(), 2)}', font, (255, 255, 255), screen, 10, 10)
             draw_text(f'MouseCoords = {mx}, {my}', font, (255, 255, 255), screen, 1400, 10)
-            draw_text(f'Fragments = {fragmentCount}', font, (255, 255, 255), screen, 1400, 30)
-            draw_text(f'Stars = {starCount}', font, (255, 255, 255), screen, 1400, 50)
-            draw_text(f'playerCoords = {player.x}, {player.y}', font, (255, 255, 255), screen, 1400, 70)
-            draw_text(f'playerRect = {player.rect.x}, {player.rect.y}', font, (255, 255, 255), screen, 1400, 90)
-            draw_text(f'playerCollide = {player.objectCollide}', font, (255, 255, 255), screen, 1400, 110)
+            draw_text(f'playerCoords = {player.x}, {player.y}', font, (255, 255, 255), screen, 1400, 30)
+            draw_text(f'playerRect = {player.rect.x}, {player.rect.y}', font, (255, 255, 255), screen, 1400, 50)
+            draw_text(f'playerCollide = {player.objectCollide}', font, (255, 255, 255), screen, 1400, 70)
         
         pygame.display.update()
 Game()
