@@ -1,5 +1,4 @@
 # Game
-from pdb import Restart
 import pygame, sys, time, math, numpy, random
 from pygame.locals import *
 
@@ -108,8 +107,6 @@ class Player(pygame.sprite.Sprite):
         self.start_scroll = self.scroll
         self.speed = 1
         self.maxSpeed = 8
-        self.fragments = 0
-        self.stars = 0
 
     def keyPress(self, keys):
         if keys[pygame.K_a]:
@@ -201,7 +198,7 @@ class Enemy(pygame.sprite.Sprite):
         self.speed = 0
         self.health = 3
         self.damage = 1
-        self.shootTimer = 0
+        self.shootTimer = -60
     def Update(self, px, py):
         rel_x, rel_y = px - self.x, py - self.y
         self.angle = (180 / math.pi) * -math.atan2(rel_y, rel_x)
@@ -225,8 +222,9 @@ class Fragment(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.x = x
         self.y = y
+    def Update(self):
         self.rect.x = self.x
-        self.rect.y - self.y
+        self.rect.y = self.y
 
 class Star(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -236,8 +234,10 @@ class Star(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.x = x
         self.y = y
+    def Update(self):
         self.rect.x = self.x
-        self.rect.y - self.y
+        self.rect.y = self.y
+
 
 class Projectile(object):
     def __init__(self, x, y, radius, color, direction):
@@ -307,8 +307,8 @@ def Game():
     panel = Panel(1560, 0)
     player = Player(300, 300, 'Player', 1000, 1)
     enemy1 = Enemy(random.randint(200, 1400), random.randint(200, 800))
-    fragment1 = Fragment(500, 500)
-    star1 = Star(700, 700)
+    fragment1 = Fragment(random.randint(200, 1400), random.randint(200, 800))
+    star1 = Star(random.randint(200, 1400), random.randint(200, 800))
 
     enemies = [enemy1]
     fragments = [fragment1]
@@ -331,26 +331,23 @@ def Game():
         world.draw()
 
         for s in stars:
-            if s in stars:
-                if s.rect.colliderect(player.rect):
-                    player.stars += 1
-                    stars.pop(stars.index(s))
-                screen.blit(s.image, (s.x, s.y))
+            if s.rect.colliderect(player.rect):
+                starCount += 1
+                stars.pop(stars.index(s))
+            s.Update()
+            screen.blit(s.image, (s.x, s.y))
 
         for f in fragments:
-            if f in fragments:
-                if f.rect.colliderect(player.rect):
-                    player.fragments += 1
-                    fragments.pop(fragments.index(f))
-                screen.blit(f.image, (f.x, f.y))
+            if f.rect.colliderect(player.rect):
+                fragmentCount += 1
+                fragments.pop(fragments.index(f))
+            f.Update()
+            screen.blit(f.image, (f.x, f.y))
 
         for o in enemies:
-            if o in enemies:
-                o.Update(player.x, player.y)
-                o.Shoot(enemyBullets, player.x, player.y)
-                screen.blit(o.image, (o.x, o.y))
-            else: 
-                pass
+            o.Update(player.x, player.y)
+            o.Shoot(enemyBullets, player.x, player.y)
+            screen.blit(o.image, (o.x, o.y))
 
         keys = pygame.key.get_pressed()
         if player.isAlive == True:
@@ -433,19 +430,23 @@ def Game():
 
         # Identifiers
         if debug == True:
-            draw_text(f'Player: {player.x, player.y}', font, (255, 200, 255), screen, player.x, player.y - 20)
-            draw_text(f'Star: {star1.x, star1.y}', font, (255, 255, 0), screen, star1.x, star1.y - 20)
+            draw_text(f'Player: {player.x, player.y}', font, (255, 100, 255), screen, player.x, player.y - 40)
+            draw_text(f'Health: {player.health}', font, (255, 100, 255), screen, player.x, player.y - 20)
             for o in enemies:
-                draw_text(f'Enemy: {o.x, o.y}', font, (255, 0, 0), screen, o.x, o.y - 20)
-            draw_text(f'Fragment: {fragment1.x, fragment1.y}', font, (0, 255, 255), screen, fragment1.x, fragment1.y - 20)
+                draw_text(f'Enemy: {o.x, o.y}', font, (255, 0, 0), screen, o.x, o.y - 40)
+                draw_text(f'Health: {o.health}', font, (255, 0, 0), screen, o.x, o.y - 20)
+            for s in stars:
+                draw_text(f'Star: {s.x, s.y}', font, (255, 255, 0), screen, s.x, s.y - 20)
+            for f in fragments:
+                draw_text(f'Fragment: {f.x, f.y}', font, (0, 255, 255), screen, f.x, f.y - 20)
             for bullet in bullets:
                 draw_text(f'Bullet: {round(bullet.x, 2), round(bullet.y, 2)}', font, (255, 255, 255), screen, bullet.x, bullet.y - 20)
             for bullet in enemyBullets:
                 draw_text(f'Enemy Bullet: {round(bullet.x, 2), round(bullet.y, 2)}', font, (255, 100, 100), screen, bullet.x, bullet.y - 20)
             draw_text(f'FPS: {round(clock.get_fps(), 2)}', font, (255, 255, 255), screen, 10, 10)
             draw_text(f'MouseCoords = {mx}, {my}', font, (255, 255, 255), screen, 1500, 10)
-            draw_text(f'Fragments = {player.fragments}', font, (255, 255, 255), screen, 1500, 30)
-            draw_text(f'Stars = {player.stars}', font, (255, 255, 255), screen, 1500, 50)
+            draw_text(f'Fragments = {fragmentCount}', font, (255, 255, 255), screen, 1500, 30)
+            draw_text(f'Stars = {starCount}', font, (255, 255, 255), screen, 1500, 50)
             draw_text(f'playerCoords = {player.x}, {player.y}', font, (255, 255, 255), screen, 1500, 70)
             draw_text(f'playerRect = {player.rect.x}, {player.rect.y}', font, (255, 255, 255), screen, 1500, 90)
             draw_text(f'playerCollide = {player.objectCollide}', font, (255, 255, 255), screen, 1500, 110)
