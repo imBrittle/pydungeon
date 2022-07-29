@@ -1,4 +1,5 @@
 # Game
+from re import L
 import pygame, sys, time, math, numpy, random
 from pygame.locals import *
 
@@ -267,6 +268,88 @@ class Star(pygame.sprite.Sprite):
         self.rect.x = self.x
         self.rect.y = self.y
 
+class Weapons():
+    class Pistol(pygame.sprite.Sprite):
+        def __init__(self, x, y):
+            pygame.sprite.Sprite.__init__(self)
+            image = pygame.image.load('img/weapon_pistol.png').convert_alpha()
+            self.original_image = pygame.transform.scale(image, (64, 64))
+            self.image = pygame.transform.scale(image, (64, 64))
+            self.rect = self.image.get_rect()
+            self.x = x
+            self.y = y
+            self.position = self.x + (self.rect.width / 2), self.y + (self.rect.height / 2)
+            self.name = 'Pistol'
+            # Stats
+            self.damage = 1
+            self.shootTimer = 30
+        def Update(self, parent):
+            # Angle
+            mx, my = pygame.mouse.get_pos()
+            rel_x, rel_y = mx - self.x, my - self.y
+            angle = (180 / math.pi) * -math.atan2(rel_y, rel_x)
+            self.image = pygame.transform.rotate(self.original_image, int(angle))
+            self.rect = self.image.get_rect(center=self.position)
+            # Positioning
+            self.x = parent.x
+            self.y = parent.y
+            self.rect.x = self.x
+            self.rect.y = self.y
+
+    class CumGun(pygame.sprite.Sprite):
+        def __init__(self, x, y):
+            pygame.sprite.Sprite.__init__(self)
+            image = pygame.image.load('img/weapon_cum_gun.png').convert_alpha()
+            self.original_image = pygame.transform.scale(image, (64, 64))
+            self.image = pygame.transform.scale(image, (64, 64))
+            self.rect = self.image.get_rect()
+            self.x = x
+            self.y = y
+            self.position = self.x + (self.rect.width / 2), self.y + (self.rect.height / 2)
+            self.name = 'CumGun'
+            # Stats
+            self.damage = 1
+            self.shootTimer = 0
+        def Update(self, parent):
+            # Angle
+            mx, my = pygame.mouse.get_pos()
+            rel_x, rel_y = mx - self.x, my - self.y
+            angle = (180 / math.pi) * -math.atan2(rel_y, rel_x)
+            self.image = pygame.transform.rotate(self.original_image, int(angle))
+            self.rect = self.image.get_rect(center=self.position)
+            # Positioning
+            self.x = parent.x
+            self.y = parent.y
+            self.rect.x = self.x
+            self.rect.y = self.y
+
+    class Shotgun(pygame.sprite.Sprite): # Currently not implemented yet
+        def __init__(self, x, y):
+            pygame.sprite.Sprite.__init__(self)
+            image = pygame.image.load('img/weapon_pistol.png').convert_alpha()
+            self.original_image = pygame.transform.scale(image, (64, 64))
+            self.image = pygame.transform.scale(image, (64, 64))
+            self.rect = self.image.get_rect()
+            self.x = x
+            self.y = y
+            self.position = self.x + (self.rect.width / 2), self.y + (self.rect.height / 2)
+            self.name = 'Shotgun'
+            # Stats
+            self.damage = 1
+            self.shootTimer = 90
+        def Update(self, parent):
+            # Angle
+            mx, my = pygame.mouse.get_pos()
+            rel_x, rel_y = mx - self.x, my - self.y
+            angle = (180 / math.pi) * -math.atan2(rel_y, rel_x)
+            self.image = pygame.transform.rotate(self.original_image, int(angle))
+            self.rect = self.image.get_rect(center=self.position)
+            # Positioning
+            self.x = parent.x
+            self.y = parent.y
+            self.rect.x = self.x
+            self.rect.y = self.y
+
 class Projectile(object):
     def __init__(self, x, y, radius, color, direction):
         self.x = x
@@ -340,6 +423,10 @@ def Game():
 
     panel = Panel(1560, 0)
     player = Player(300, 300, 'Player', 1000, 1)
+    # Weapons
+    pistol = Weapons.Pistol(player.x, player.y)
+    shotgun = Weapons.Shotgun(player.x, player.y)
+    cumGun = Weapons.CumGun(player.x, player.y)
 
     enemies = []
     for o in enemy_group:
@@ -350,11 +437,27 @@ def Game():
     stars = []
     for s in star_group:
         stars.append(s)
+
+    weapons = [pistol, pistol]
+
+    if len(weapons) == 0:
+        activeWeapon = None
+        inactiveWeapon = None
+    elif len(weapons) == 1:
+        activeWeapon = weapons[0]
+        inactiveWeapon = None
+    else:
+        activeWeapon = weapons[0]
+        inactiveWeapon = weapons[1]
+        
     bullets = []
     enemyBullets = []
 
     keyCooldown = 0
+    switchCooldown = 0
     shootTimer = 0
+
+    printWeapons = ''
 
     debug = False
 
@@ -391,6 +494,9 @@ def Game():
             player.keyPress(keys)
             player.Update()
             player.rect.clamp_ip(screenRect)
+            for w in weapons:
+                    w.Update(player)
+            screen.blit(activeWeapon.image, (activeWeapon.x, activeWeapon.y))
 
         for bullet in bullets:
             bullet.Draw(screen)
@@ -405,6 +511,7 @@ def Game():
         draw_text(f'{player.damage}', bigFont, (255, 255, 255), screen, 1750, 540)
 
         keyCooldown += 1
+        switchCooldown += 1
 
         # Input
         for event in pygame.event.get():
@@ -422,9 +529,25 @@ def Game():
             else:
                 debug = False
         if keys[pygame.K_SPACE]:
-            if shootTimer >= 30 and len(bullets) < 1000:  # Bullet Cap
-                bullets.append(Projectile(round(player.x+player.width//2), round(player.y + player.height//2), 6, (255, 255, 255), 90)) 
+            if shootTimer >= activeWeapon.shootTimer and len(bullets) < 1000: # Bullet Cap
+                if activeWeapon == shotgun:
+                    bullets.append(Projectile(round(player.x+player.width//2), round(player.y + player.height//2), 6, (255, 255, 255), 90)) 
+                    bullets.append(Projectile(round(player.x+player.width//2), round(player.y + player.height//2), 6, (255, 255, 255), 90)) 
+                    bullets.append(Projectile(round(player.x+player.width//2), round(player.y + player.height//2), 6, (255, 255, 255), 90)) 
+                else:
+                    bullets.append(Projectile(round(player.x+player.width//2), round(player.y + player.height//2), 6, (255, 255, 255), 90)) 
                 shootTimer = 0
+        if keys[pygame.K_1] and switchCooldown > 20:
+            switchCooldown = 0
+            activeWeaponPlaceholder = activeWeapon
+            activeWeapon = inactiveWeapon
+            inactiveWeapon = activeWeaponPlaceholder
+        if keys[pygame.K_2] and switchCooldown > 20:
+            switchCooldown = 0
+            activeWeaponPlaceholder = activeWeapon
+            activeWeapon = inactiveWeapon
+            inactiveWeapon = activeWeaponPlaceholder
+
 
         mx, my = pygame.mouse.get_pos()
 
@@ -470,10 +593,18 @@ def Game():
             else:
                 enemyBullets.pop(enemyBullets.index(bullet))
 
+        # Panel Images
+        screen.blit(activeWeapon.original_image, (1740, 690))
+        screen.blit(inactiveWeapon.original_image, (1740, 770))
+
         # Identifiers
         if debug == True:
-            draw_text(f'Player: {player.x, player.y}', font, (255, 100, 255), screen, player.x, player.y - 40)
-            draw_text(f'Health: {player.health}', font, (255, 100, 255), screen, player.x, player.y - 20)
+            draw_text(f'Player: {player.x, player.y}', font, (255, 100, 255), screen, player.x, player.y - 60)
+            draw_text(f'Health: {player.health}', font, (255, 100, 255), screen, player.x, player.y - 40)
+            for w in reversed(weapons):
+                if w.name not in printWeapons:
+                    printWeapons = w.name + ', ' + printWeapons
+            draw_text(f'Weapons: {printWeapons}', font, (255, 100, 255), screen, player.x, player.y - 20)
             for o in enemies:
                 draw_text(f'Enemy: {o.x, o.y}', font, (255, 0, 0), screen, o.x, o.y - 60)
                 draw_text(f'Health: {o.health}', font, (255, 0, 0), screen, o.x, o.y - 40)
