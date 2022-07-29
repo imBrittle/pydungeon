@@ -108,6 +108,8 @@ class Player(pygame.sprite.Sprite):
         self.start_scroll = self.scroll
         self.speed = 1
         self.maxSpeed = 8
+        self.fragments = 0
+        self.stars = 0
 
     def keyPress(self, keys):
         if keys[pygame.K_a]:
@@ -136,8 +138,8 @@ class Player(pygame.sprite.Sprite):
             print("Ultimate")
 
     def Update(self):
-        self.prevX = self.x
-        self.prevY = self.y
+        if self.health <= 0:
+            self.isAlive = False
 
         # Character Movement
         if self.VelocityX > self.maxSpeed:
@@ -223,6 +225,8 @@ class Fragment(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.x = x
         self.y = y
+        self.rect.x = self.x
+        self.rect.y - self.y
 
 class Star(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -232,6 +236,8 @@ class Star(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.x = x
         self.y = y
+        self.rect.x = self.x
+        self.rect.y - self.y
 
 class Projectile(object):
     def __init__(self, x, y, radius, color, direction):
@@ -299,7 +305,7 @@ def Game():
     starCount = 0
 
     panel = Panel(1560, 0)
-    player = Player(300, 300, 'Player', 5, 1)
+    player = Player(300, 300, 'Player', 1000, 1)
     enemy1 = Enemy(random.randint(200, 1400), random.randint(200, 800))
     fragment1 = Fragment(500, 500)
     star1 = Star(700, 700)
@@ -325,10 +331,18 @@ def Game():
         world.draw()
 
         for s in stars:
-            screen.blit(s.image, (s.x, s.y))
+            if s in stars:
+                if s.rect.colliderect(player.rect):
+                    player.stars += 1
+                    stars.pop(stars.index(s))
+                screen.blit(s.image, (s.x, s.y))
 
         for f in fragments:
-            screen.blit(f.image, (f.x, f.y))
+            if f in fragments:
+                if f.rect.colliderect(player.rect):
+                    player.fragments += 1
+                    fragments.pop(fragments.index(f))
+                screen.blit(f.image, (f.x, f.y))
 
         for o in enemies:
             if o in enemies:
@@ -339,9 +353,10 @@ def Game():
                 pass
 
         keys = pygame.key.get_pressed()
-        player.keyPress(keys)
-        player.Update()
-        player.rect.clamp_ip(screenRect)
+        if player.isAlive == True:
+            player.keyPress(keys)
+            player.Update()
+            player.rect.clamp_ip(screenRect)
 
         for bullet in bullets:
             bullet.Draw(screen)
@@ -429,8 +444,8 @@ def Game():
                 draw_text(f'Enemy Bullet: {round(bullet.x, 2), round(bullet.y, 2)}', font, (255, 100, 100), screen, bullet.x, bullet.y - 20)
             draw_text(f'FPS: {round(clock.get_fps(), 2)}', font, (255, 255, 255), screen, 10, 10)
             draw_text(f'MouseCoords = {mx}, {my}', font, (255, 255, 255), screen, 1500, 10)
-            draw_text(f'Fragments = {fragmentCount}', font, (255, 255, 255), screen, 1500, 30)
-            draw_text(f'Stars = {starCount}', font, (255, 255, 255), screen, 1500, 50)
+            draw_text(f'Fragments = {player.fragments}', font, (255, 255, 255), screen, 1500, 30)
+            draw_text(f'Stars = {player.stars}', font, (255, 255, 255), screen, 1500, 50)
             draw_text(f'playerCoords = {player.x}, {player.y}', font, (255, 255, 255), screen, 1500, 70)
             draw_text(f'playerRect = {player.rect.x}, {player.rect.y}', font, (255, 255, 255), screen, 1500, 90)
             draw_text(f'playerCollide = {player.objectCollide}', font, (255, 255, 255), screen, 1500, 110)
