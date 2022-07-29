@@ -36,7 +36,7 @@ def BuildWorld(size):
 
 class Panel(pygame.sprite.Sprite):
     def __init__(self, x, y):
-        image = pygame.image.load('img/panel.png').convert()
+        image = pygame.image.load('img/panelDesign.png').convert()
         self.image = pygame.transform.scale(image, (360, 1080))
         self.rect = self.image.get_rect()
         self.x = x
@@ -308,11 +308,14 @@ def Game():
     player = Player(300, 300, 'Player', 1000, 1)
     enemy1 = Enemy(random.randint(200, 1400), random.randint(200, 800))
     fragment1 = Fragment(random.randint(200, 1400), random.randint(200, 800))
+    fragment2 = Fragment(random.randint(200, 1400), random.randint(200, 800))
     star1 = Star(random.randint(200, 1400), random.randint(200, 800))
+    star2 = Star(random.randint(200, 1400), random.randint(200, 800))
+    
 
     enemies = [enemy1]
-    fragments = [fragment1]
-    stars = [star1]
+    fragments = [fragment1, fragment2]
+    stars = [star1, star2]
     bullets = []
     enemyBullets = []
 
@@ -422,6 +425,7 @@ def Game():
                         player.health -= o.damage
                         if o.health <= 0:
                             player.pop(player.index(o))
+                            popDelay = len(enemies)
                         else:
                             pass
                 bullet.Update()
@@ -444,12 +448,12 @@ def Game():
             for bullet in enemyBullets:
                 draw_text(f'Enemy Bullet: {round(bullet.x, 2), round(bullet.y, 2)}', font, (255, 100, 100), screen, bullet.x, bullet.y - 20)
             draw_text(f'FPS: {round(clock.get_fps(), 2)}', font, (255, 255, 255), screen, 10, 10)
-            draw_text(f'MouseCoords = {mx}, {my}', font, (255, 255, 255), screen, 1500, 10)
-            draw_text(f'Fragments = {fragmentCount}', font, (255, 255, 255), screen, 1500, 30)
-            draw_text(f'Stars = {starCount}', font, (255, 255, 255), screen, 1500, 50)
-            draw_text(f'playerCoords = {player.x}, {player.y}', font, (255, 255, 255), screen, 1500, 70)
-            draw_text(f'playerRect = {player.rect.x}, {player.rect.y}', font, (255, 255, 255), screen, 1500, 90)
-            draw_text(f'playerCollide = {player.objectCollide}', font, (255, 255, 255), screen, 1500, 110)
+            draw_text(f'MouseCoords = {mx}, {my}', font, (255, 255, 255), screen, 1400, 10)
+            draw_text(f'Fragments = {fragmentCount}', font, (255, 255, 255), screen, 1400, 30)
+            draw_text(f'Stars = {starCount}', font, (255, 255, 255), screen, 1400, 50)
+            draw_text(f'playerCoords = {player.x}, {player.y}', font, (255, 255, 255), screen, 1400, 70)
+            draw_text(f'playerRect = {player.rect.x}, {player.rect.y}', font, (255, 255, 255), screen, 1400, 90)
+            draw_text(f'playerCollide = {player.objectCollide}', font, (255, 255, 255), screen, 1400, 110)
         
         pygame.display.update()
 Game()
