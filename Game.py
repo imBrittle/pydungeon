@@ -1,9 +1,9 @@
 # Game
-from re import L
 import pygame, sys, time, math, numpy, random
 from pygame.locals import *
 
 pygame.init()
+pygame.mixer.init()
 
 pygame.display.set_caption('Dungeon Crawler')
 
@@ -100,6 +100,9 @@ class World():
                 if tile == 5:
                     enemy = Enemy(col_count * tile_size, row_count * tile_size)
                     enemy_group.add(enemy)
+                if tile == 6:
+                    explosiveBarrel = ExplosiveBarrel(col_count * tile_size, row_count * tile_size)
+                    explosiveBarrel_group.add(explosiveBarrel)
                 col_count += 1
             row_count += 1
 
@@ -268,6 +271,18 @@ class Star(pygame.sprite.Sprite):
         self.rect.x = self.x
         self.rect.y = self.y
 
+class ExplosiveBarrel(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        image = pygame.image.load('img/barrel_explosive.png').convert_alpha()
+        self.image = pygame.transform.scale(image, (64, 64))
+        self.rect = self.image.get_rect()
+        self.x = x
+        self.y = y
+    def Update(self):
+        self.rect.x = self.x
+        self.rect.y = self.y
+
 class Weapons():
     class Pistol(pygame.sprite.Sprite):
         def __init__(self, x, y):
@@ -283,6 +298,7 @@ class Weapons():
             # Stats
             self.damage = 1
             self.shootTimer = 30
+            self.shootSound = pygame.mixer.Sound('sound/pistolShootSound.wav')
         def Update(self, parent):
             # Angle
             mx, my = pygame.mouse.get_pos()
@@ -296,7 +312,7 @@ class Weapons():
             self.rect.x = self.x
             self.rect.y = self.y
 
-    class CumGun(pygame.sprite.Sprite):
+    class Cumgun(pygame.sprite.Sprite):
         def __init__(self, x, y):
             pygame.sprite.Sprite.__init__(self)
             image = pygame.image.load('img/weapon_cum_gun.png').convert_alpha()
@@ -306,10 +322,11 @@ class Weapons():
             self.x = x
             self.y = y
             self.position = self.x + (self.rect.width / 2), self.y + (self.rect.height / 2)
-            self.name = 'CumGun'
+            self.name = 'Cumgun'
             # Stats
             self.damage = 1
             self.shootTimer = 0
+            self.shootSound = pygame.mixer.Sound('sound/cumgunShootSound.wav')
         def Update(self, parent):
             # Angle
             mx, my = pygame.mouse.get_pos()
@@ -337,6 +354,7 @@ class Weapons():
             # Stats
             self.damage = 1
             self.shootTimer = 90
+            self.shootSound = pygame.mixer.Sound('sound/shoot.wav')
         def Update(self, parent):
             # Angle
             mx, my = pygame.mouse.get_pos()
@@ -392,7 +410,7 @@ class EnemyProjectile(object):
 world_data = [
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
+    [1, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 1], 
     [1, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 1], 
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 1], 
@@ -405,7 +423,7 @@ world_data = [
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
     [1, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 1], 
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
+    [1, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 1], 
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
 
@@ -415,7 +433,12 @@ world_data = [
 star_group = pygame.sprite.Group()
 fragment_group = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
+explosiveBarrel_group = pygame.sprite.Group()
 world = World(world_data)
+
+# Sounds
+hitHurtSound = pygame.mixer.Sound('sound/hitHurt.wav')
+explosionSound = pygame.mixer.Sound('sound/explosion.wav')
 
 def Game():
     fragmentCount = 0
@@ -426,7 +449,7 @@ def Game():
     # Weapons
     pistol = Weapons.Pistol(player.x, player.y)
     shotgun = Weapons.Shotgun(player.x, player.y)
-    cumGun = Weapons.CumGun(player.x, player.y)
+    cumgun = Weapons.Cumgun(player.x, player.y)
 
     enemies = []
     for o in enemy_group:
@@ -437,8 +460,11 @@ def Game():
     stars = []
     for s in star_group:
         stars.append(s)
+    explosiveBarrels = []
+    for b in explosiveBarrel_group:
+        explosiveBarrels.append(b)
 
-    weapons = [pistol, pistol]
+    weapons = [pistol, cumgun]
 
     if len(weapons) == 0:
         activeWeapon = None
@@ -483,6 +509,12 @@ def Game():
                 fragments.pop(fragments.index(f))
             f.Update()
             screen.blit(f.image, (f.x, f.y))
+
+        for b in explosiveBarrels:
+            if b.rect.colliderect(player.rect):
+                player.clamp_ip(b.rect)
+            b.Update()
+            screen.blit(b.image, (b.x, b.y))
 
         for o in enemies:
             o.Update(player.x, player.y)
@@ -530,6 +562,7 @@ def Game():
                 debug = False
         if keys[pygame.K_SPACE]:
             if shootTimer >= activeWeapon.shootTimer and len(bullets) < 1000: # Bullet Cap
+                pygame.mixer.Sound.play(activeWeapon.shootSound)
                 if activeWeapon == shotgun:
                     bullets.append(Projectile(round(player.x+player.width//2), round(player.y + player.height//2), 6, (255, 255, 255), 90)) 
                     bullets.append(Projectile(round(player.x+player.width//2), round(player.y + player.height//2), 6, (255, 255, 255), 90)) 
@@ -571,10 +604,14 @@ def Game():
                     if bullet.rect.colliderect(o.rect):
                         bullets.pop(bullets.index(bullet))
                         o.health -= player.damage
+                        pygame.mixer.Sound.play(hitHurtSound)
                         if o.health <= 0:
                             enemies.pop(enemies.index(o))
-                        else:
-                            pass
+                for b in explosiveBarrels:
+                    if bullet.rect.colliderect(b.rect):
+                        bullets.pop(bullets.index(bullet))
+                        pygame.mixer.Sound.play(explosionSound)
+                        explosiveBarrels.pop(explosiveBarrels.index(b))
                 bullet.Update()
             else:
                 bullets.pop(bullets.index(bullet))
@@ -585,10 +622,14 @@ def Game():
                     if bullet.rect.colliderect(player.rect):
                         enemyBullets.pop(enemyBullets.index(bullet))
                         player.health -= o.damage
+                        pygame.mixer.Sound.play(hitHurtSound)
                         if o.health <= 0:
                             player.pop(player.index(o))
-                        else:
-                            pass
+                for b in explosiveBarrels:
+                    if bullet.rect.colliderect(b.rect):
+                        enemyBullets.pop(enemyBullets.index(bullet))
+                        pygame.mixer.Sound.play(explosionSound)
+                        explosiveBarrels.pop(explosiveBarrels.index(b))
                 bullet.Update()
             else:
                 enemyBullets.pop(enemyBullets.index(bullet))
