@@ -103,6 +103,12 @@ class World():
                 if tile == 6:
                     explosiveBarrel = ExplosiveBarrel(col_count * tile_size, row_count * tile_size)
                     explosiveBarrel_group.add(explosiveBarrel)
+                if tile == 7:
+                    crate = Crate(col_count * tile_size, row_count * tile_size)
+                    crate_group.add(crate)
+                if tile == 8:
+                    weaponCrate = WeaponCrate(col_count * tile_size, row_count * tile_size)
+                    weaponCrate_group.add(weaponCrate)
                 col_count += 1
             row_count += 1
 
@@ -369,6 +375,35 @@ class Weapons():
             self.rect.x = self.x
             self.rect.y = self.y
 
+class Crate(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        image = pygame.image.load('img/crate.png').convert_alpha()
+        self.original_image = pygame.transform.scale(image, (64, 64))
+        self.image = pygame.transform.scale(image, (64, 64))
+        self.rect = self.image.get_rect()
+        self.x = x
+        self.y = y
+        self.broken = False
+    def Update(self):
+        self.rect.x = self.x
+        self.rect.y = self.y
+
+class WeaponCrate(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        image = pygame.image.load('img/weapon_crate.png').convert_alpha()
+        self.original_image = pygame.transform.scale(image, (64, 64))
+        self.image = pygame.transform.scale(image, (64, 64))
+        self.rect = self.image.get_rect()
+        self.x = x
+        self.y = y
+        self.broken = False
+    def Update(self):
+        self.rect.x = self.x
+        self.rect.y = self.y
+
+
 class Projectile(object):
     def __init__(self, x, y, radius, color, direction):
         self.x = x
@@ -410,7 +445,7 @@ class EnemyProjectile(object):
         
 world_data = [
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
+    [1, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 1], 
     [1, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 1], 
     [1, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 1], 
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
@@ -424,7 +459,7 @@ world_data = [
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
     [1, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 1], 
-    [1, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 1], 
+    [1, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 8, 1], 
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
 
@@ -435,6 +470,8 @@ star_group = pygame.sprite.Group()
 fragment_group = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
 explosiveBarrel_group = pygame.sprite.Group()
+crate_group = pygame.sprite.Group()
+weaponCrate_group = pygame.sprite.Group()
 world = World(world_data)
 
 # Sounds
@@ -466,6 +503,12 @@ def Game():
     explosiveBarrels = []
     for b in explosiveBarrel_group:
         explosiveBarrels.append(b)
+    crates = []
+    for c in crate_group:
+        crates.append(c)
+    weaponCrates = []
+    for c in weaponCrate_group:
+        weaponCrates.append(c)
 
     weapons = [pistol, cumgun]
 
@@ -518,6 +561,22 @@ def Game():
                 player.rect.clamp_ip(b.rect)
             b.Update()
             screen.blit(b.image, (b.x, b.y))
+
+        for c in crates:
+            for bullet in bullets:
+                if bullet.rect.colliderect(c):
+                    c.broken = True
+                    if c.broken == True:
+                        crates.pop(crates.index(c))
+            screen.blit(c.image, (c.x, c.y))
+
+        for c in weaponCrates:
+            for bullet in bullets:
+                if bullet.rect.colliderect(c):
+                    c.broken = True
+                    if c.broken == True:
+                        crates.pop(crates.index(c))
+            screen.blit(c.image, (c.x, c.y))
 
         for o in enemies:
             o.Update(player.x, player.y)
