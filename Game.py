@@ -246,6 +246,7 @@ class Enemy(pygame.sprite.Sprite):
         if self.shootTimer >= 60 and len(enemyBullets) < 1000:  # Bullet Cap
             enemyBullets.append(EnemyProjectile(round(self.x+self.width//2), round(self.y + self.height//2), 6, (255, 100, 100), 90, px + 32, py + 32)) 
             self.shootTimer = 0
+            pygame.mixer.Sound.play(enemyShootSound)
 
 class Fragment(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -354,7 +355,7 @@ class Weapons():
             # Stats
             self.damage = 1
             self.shootTimer = 90
-            self.shootSound = pygame.mixer.Sound('sound/shoot.wav')
+            self.shootSound = pygame.mixer.Sound('sound/pistolShootSound.wav')
         def Update(self, parent):
             # Angle
             mx, my = pygame.mouse.get_pos()
@@ -438,7 +439,9 @@ world = World(world_data)
 
 # Sounds
 hitHurtSound = pygame.mixer.Sound('sound/hitHurt.wav')
+playerHurtSound = pygame.mixer.Sound('sound/playerHurt.wav')
 explosionSound = pygame.mixer.Sound('sound/explosion.wav')
+enemyShootSound = pygame.mixer.Sound('sound/enemyShootSound.wav')
 
 def Game():
     fragmentCount = 0
@@ -512,7 +515,7 @@ def Game():
 
         for b in explosiveBarrels:
             if b.rect.colliderect(player.rect):
-                player.clamp_ip(b.rect)
+                player.rect.clamp_ip(b.rect)
             b.Update()
             screen.blit(b.image, (b.x, b.y))
 
@@ -622,7 +625,7 @@ def Game():
                     if bullet.rect.colliderect(player.rect):
                         enemyBullets.pop(enemyBullets.index(bullet))
                         player.health -= o.damage
-                        pygame.mixer.Sound.play(hitHurtSound)
+                        pygame.mixer.Sound.play(playerHurtSound)
                         if o.health <= 0:
                             player.pop(player.index(o))
                 for b in explosiveBarrels:
